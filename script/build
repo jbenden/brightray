@@ -17,6 +17,13 @@ def main():
 def run_gyp():
     env = os.environ.copy()
     gyp_pylib = os.path.join(os.path.dirname(GYP), 'pylib')
+    if sys.platform.startswith('freebsd'):
+        if 'CC' not in os.environ:
+            env['CC'] = 'clang39'
+        if 'CXX' not in os.environ:
+            env['CXX'] = 'clang++39'
+        if 'CXXFLAGS' not in os.environ:
+            os.environ['CXXFLAGS'] = '-std=c++11'
     env['PYTHONPATH'] = os.path.pathsep.join([gyp_pylib,
                                               env.get('PYTHONPATH', '')])
     env['GYP_DEFINES'] = 'libchromiumcontent_component=static_library'
@@ -27,6 +34,8 @@ def run_gyp():
 def build():
     if sys.platform == 'darwin':
         return subprocess.call(['xcodebuild'])
+    if sys.platform.startswith('freebsd'):
+        return subprocess.call(['gmake'])
     if sys.platform == 'linux2':
         return subprocess.call(['make'])
 
