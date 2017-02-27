@@ -7,7 +7,7 @@
 #include "ui/views/widget/desktop_aura/desktop_native_widget_aura.h"
 #include "ui/views/widget/native_widget_aura.h"
 
-#if defined(OS_LINUX)
+#if defined(OS_LINUX) || defined(OS_FREEBSD)
 #include "ui/views/linux_ui/linux_ui.h"
 #endif
 
@@ -59,7 +59,7 @@ bool ViewsDelegate::IsWindowInMetro(gfx::NativeWindow window) const {
   return false;
 }
 
-#elif defined(OS_LINUX) && !defined(OS_CHROMEOS)
+#elif (defined(OS_LINUX) || defined(OS_FREEBSD)) && !defined(OS_CHROMEOS)
 gfx::ImageSkia* ViewsDelegate::GetDefaultWindowIcon() const {
   return NULL;
 }
@@ -101,7 +101,7 @@ void ViewsDelegate::OnBeforeWidgetInit(
 
 
 bool ViewsDelegate::WindowManagerProvidesTitleBar(bool maximized) {
-#if defined(OS_LINUX)
+#if defined(OS_LINUX) || defined(OS_FREEBSD)
   // On Ubuntu Unity, the system always provides a title bar for maximized
   // windows.
   views::LinuxUI* ui = views::LinuxUI::instance();

@@ -1,7 +1,8 @@
 {
   'variables': {
     # The libraries brightray will be compiled to.
-    'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss'
+    'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
+    'freebsd_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
   },
   'includes': [
     'filenames.gypi',
@@ -40,6 +41,74 @@
       'sources': [ '<@(brightray_sources)' ],
       'conditions': [
         # Link with libraries of libchromiumcontent.
+         ['OS=="freebsd" and libchromiumcontent_component==0', {
+          # On Linux we have to use "--whole-archive" to force executable
+          # to include all symbols, otherwise we will have plenty of
+          # unresolved symbols errors.
+          'direct_dependent_settings': {
+            'libraries': [
+              '-Wl,--start-group',
+              '<@(libchromiumcontent_libraries)',
+              '<@(libchromiumcontent_v8_libraries)',
+              '-Wl,--end-group',
+            ],
+          },
+        }],  # (Normal builds)
+        ['OS=="freebsd"', {
+          'direct_dependent_settings': {
+            'cflags': [
+              '<!@(<(pkg-config) --cflags <(freebsd_system_libraries))',
+            ],
+          },
+          'link_settings': {
+            'ldflags': [
+              '<!@(<(pkg-config) --libs-only-L --libs-only-other <(freebsd_system_libraries))',
+            ],
+            'libraries': [
+              '-lpthread',
+              '<!@(<(pkg-config) --libs-only-l <(freebsd_system_libraries))',
+              '-lexecinfo -lkvm -licui18n -licuuc -licudata -lgconf-2 -lgio-2.0 ',
+              '-lxml2 -lfontconfig -lfreetype -lexpat -lharfbuzz -lpng16 -lcups ',
+              '-lspeechd -lm -lz -lrt  -lwebp -lwebpdemux -levent -ljpeg  -lre2 ',
+              '-lasound -lsnappy -lxslt -lcups -lspeechd -ldbus-1 -lFLAC '
+            ],
+          },
+          'cflags': [
+            '<!@(<(pkg-config) --cflags <(freebsd_system_libraries))',
+          ],
+          'conditions': [
+            ['libchromiumcontent_component', {
+              'link_settings': {
+                'libraries': [
+                  # Following libraries are always linked statically.
+                  '<(libchromiumcontent_dir)/libgtk2ui.a',
+                  '<(libchromiumcontent_dir)/libdevtools_discovery.a',
+                  '<(libchromiumcontent_dir)/libdevtools_http_handler.a',
+                  '<(libchromiumcontent_dir)/libhttp_server.a',
+                  '<(libchromiumcontent_dir)/libdesktop_capture.a',
+                  '<(libchromiumcontent_dir)/libdesktop_capture_differ_sse2.a',
+                  '<(libchromiumcontent_dir)/libsystem_wrappers.a',
+                  '<(libchromiumcontent_dir)/librtc_base.a',
+                  '<(libchromiumcontent_dir)/librtc_base_approved.a',
+                  '<(libchromiumcontent_dir)/libwebrtc_common.a',
+                  '<(libchromiumcontent_dir)/libyuv.a',
+                  '<(libchromiumcontent_dir)/libcdm_renderer.a',
+                  '<(libchromiumcontent_dir)/libsecurity_state.a',
+                ],
+              },
+            }, {
+              'link_settings': {
+                'libraries': [
+                  # Link with ffmpeg.
+                  '<(libchromiumcontent_dir)/libffmpeg.so',
+                  # Following libraries are required by libchromiumcontent:
+                  '-lexpat',
+                ],
+              },
+            }],
+          ],
+        }],  # (Normal builds)
+        
         ['OS=="linux" and libchromiumcontent_component==0', {
           # On Linux we have to use "--whole-archive" to force executable
           # to include all symbols, otherwise we will have plenty of
@@ -53,7 +122,9 @@
           }
         }, {  # (Release build on Linux)
           'link_settings': {
-            'libraries': [ '<@(libchromiumcontent_libraries)' ]
+            'libraries': [ 
+              '<@(libchromiumcontent_libraries)' ,
+            ]
           },
         }],  # (Normal builds)
         # Linux specific link settings.
