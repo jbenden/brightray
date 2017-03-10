@@ -94,8 +94,6 @@
         'defines': [
           # Used by content_browser_client.h:
           'ENABLE_WEBRTC',
-          # We are using Release version libchromiumcontent:
-          'NDEBUG',
           # Needed by gin:
           'V8_USE_EXTERNAL_STARTUP_DATA',
           # From skia_for_chromium_defines.gypi:
@@ -128,6 +126,26 @@
               'USE_NSS',  # deprecated after Chrome 45.
             ],
           }],
+          ['OS=="freebsd"', {
+            'defines': [
+              '_LARGEFILE_SOURCE',
+              '_LARGEFILE64_SOURCE',
+              '_FILE_OFFSET_BITS=64',
+              '_LIBCPP_TRIVIAL_PAIR_COPY_CTOR=1',
+              'NO_TCMALLOC',
+              'CR_CLANG_REVISION=284979-2',
+              '__STRICT_ANSI__',
+            ],
+            'cflags': [
+              '-fno-strict-aliasing --param=ssp-buffer-size=4 -fstack-protector -funwind-tables -fPIC -pipe -fcolor-diagnostics -pthread -g -Wstring-conversion -Wall -Wno-unused-variable -Wno-missing-field-initializers -Wno-unused-parameter -Wno-c++11-narrowing -Wno-covered-switch-default -Wno-deprecated-register -Wno-unneeded-internal-declaration -Wno-inconsistent-missing-override -Wno-shift-negative-value -Wno-undefined-var-template -Wno-nonportable-include-path -Wsign-compare -Winconsistent-missing-override -fno-ident -fdata-sections -ffunction-sections',
+            ],
+            'cflags_cc': [
+              '-g -fno-threadsafe-statics -std=gnu++11 -fno-rtti -fno-exceptions -Wno-deprecated -Wno-unused-variable -Wno-unused-function -Wno-missing-field-initializers -Wno-unused-parameter -Wno-c++11-narrowing -Wno-covered-switch-default -Wno-deprecated-register -Wno-unneeded-internal-declaration -Wno-inconsistent-missing-override -Wno-shift-negative-value -Wno-undefined-var-template -Wno-nonportable-include-path -Wsign-compare -Wno-inconsistent-missing-override -Wno-overloaded-virtual -Wno-unused-private-field',
+            ],
+            'ldflags': [
+              '-Wl,--disable-new-dtags -Wl,--fatal-warnings -Wl,-z,noexecstack -Wl,-z,now -Wl,-z,relro -pthread -Wl,--gc-sections -fuse-ld=lld -L/usr/local/lib',
+            ],
+          }],  # OS=="linux"
           ['OS=="linux"', {
             'defines': [
               '_LARGEFILE_SOURCE',
@@ -190,13 +208,14 @@
         'defines': [
           # Use this instead of "NDEBUG" to determine whether we are in
           # Debug build, because "NDEBUG" is already used by Chromium.
-          'DEBUG',
+          'NDEBUG',
           # Require when using libchromiumcontent.
           'COMPONENT_BUILD',
           'GURL_DLL',
           'SKIA_DLL',
           'USING_V8_SHARED',
           'WEBKIT_DLL',
+          '_GLIBCXX_DEBUG',
         ],
         'msvs_settings': {
           'VCCLCompilerTool': {
@@ -209,6 +228,9 @@
       },  # Debug_Base
       'Release_Base': {
         'abstract': 1,
+        'defines': [
+          'NDEBUG',
+        ],
         'msvs_settings': {
           'VCCLCompilerTool': {
             'RuntimeLibrary': '0',  # /MT (nondebug static)
@@ -254,6 +276,27 @@
               '-Wl,--gc-sections',
             ],
           }],  # OS=="linux"
+          ['OS=="freebsd"', {
+            'cflags': [
+              '-O2',
+              # Generate symbols, will be stripped later.
+              '-g',
+              # Don't emit the GCC version ident directives, they just end up
+              # in the .comment section taking up binary size.
+              '-fno-ident',
+              # Put data and code in their own sections, so that unused symbols
+              # can be removed at link time with --gc-sections.
+              '-fdata-sections',
+              '-ffunction-sections',
+            ],
+            'ldflags': [
+              # Specifically tell the linker to perform optimizations.
+              # See http://lwn.net/Articles/192624/ .
+              '-Wl,-O1',
+              '-Wl,--as-needed',
+              '-Wl,--gc-sections',
+            ],
+          }],  # OS=="freebsd"
         ],
       },  # Release_Base
       'conditions': [
@@ -315,6 +358,12 @@
           '-Wl,--no-keep-memory',
         ],
       }],
+      ['OS=="freebsd" and target_arch=="ia32" and _toolset=="target"', {
+        'ldflags': [
+          # Workaround for linker OOM.
+          '-Wl,--no-keep-memory',
+        ],
+      }],
     ],  # target_conditions
     # Ignored compiler warnings of Chromium.
     'conditions': [
@@ -333,6 +382,12 @@
         },
       }],
       ['OS=="linux"', {
+        'cflags': [
+          '-Wno-inconsistent-missing-override',
+          '-Wno-undefined-var-template', # https://crbug.com/604888
+        ],
+      }],
+      ['OS=="freebsd"', {
         'cflags': [
           '-Wno-inconsistent-missing-override',
           '-Wno-undefined-var-template', # https://crbug.com/604888

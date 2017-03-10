@@ -41,23 +41,30 @@
       'sources': [ '<@(brightray_sources)' ],
       'conditions': [
         # Link with libraries of libchromiumcontent.
-         ['OS=="freebsd" and libchromiumcontent_component==0', {
-          # On Linux we have to use "--whole-archive" to force executable
+        ['OS=="freebsd" and libchromiumcontent_component==0', {
+          # On FreeBSD we have to use "--whole-archive" to force executable
           # to include all symbols, otherwise we will have plenty of
           # unresolved symbols errors.
           'direct_dependent_settings': {
-            'libraries': [
-              '-Wl,--start-group',
+            'ldflags': [
+              '-Wl,--whole-archive',
               '<@(libchromiumcontent_libraries)',
-              '<@(libchromiumcontent_v8_libraries)',
-              '-Wl,--end-group',
+              '-Wl,--no-whole-archive',
             ],
           },
-        }],  # (Normal builds)
+        }, { # (Release build on FreeBSD)
+          'link_settings': {
+            'libraries': [ 
+              '<@(libchromiumcontent_libraries)' ,
+            ]
+          },
+		}],  # (Normal builds)
         ['OS=="freebsd"', {
           'direct_dependent_settings': {
             'cflags': [
               '<!@(<(pkg-config) --cflags <(freebsd_system_libraries))',
+              '-Wno-deprecated-register',
+              '-Wno-sentinel',
             ],
           },
           'link_settings': {
@@ -67,14 +74,16 @@
             'libraries': [
               '-lpthread',
               '<!@(<(pkg-config) --libs-only-l <(freebsd_system_libraries))',
-              '-lexecinfo -lkvm -licui18n -licuuc -licudata -lgconf-2 -lgio-2.0 ',
-              '-lxml2 -lfontconfig -lfreetype -lexpat -lharfbuzz -lpng16 -lcups ',
-              '-lspeechd -lm -lz -lrt  -lwebp -lwebpdemux -levent -ljpeg  -lre2 ',
-              '-lasound -lsnappy -lxslt -lcups -lspeechd -ldbus-1 -lFLAC '
             ],
           },
           'cflags': [
             '<!@(<(pkg-config) --cflags <(freebsd_system_libraries))',
+            # Needed by using libgtkui:
+            '-Wno-deprecated-register',
+            '-Wno-sentinel',
+          ],
+          'cflags_cc': [
+            '-Wno-reserved-user-defined-literal',
           ],
           'conditions': [
             ['libchromiumcontent_component', {
@@ -82,34 +91,64 @@
                 'libraries': [
                   # Following libraries are always linked statically.
                   '<(libchromiumcontent_dir)/libgtkui.a',
-                  #'<(libchromiumcontent_dir)/libdevtools_discovery.a',
-                  #'<(libchromiumcontent_dir)/libdevtools_http_handler.a',
-                  '<(libchromiumcontent_dir)/libdom_keycode_converter.a',
                   '<(libchromiumcontent_dir)/libhttp_server.a',
                   '<(libchromiumcontent_dir)/libdesktop_capture.a',
-                  #'<(libchromiumcontent_dir)/libdesktop_capture_differ_sse2.a',
+                  '<(libchromiumcontent_dir)/libdom_keycode_converter.a',
                   '<(libchromiumcontent_dir)/libsystem_wrappers.a',
                   '<(libchromiumcontent_dir)/librtc_base.a',
                   '<(libchromiumcontent_dir)/librtc_base_approved.a',
                   '<(libchromiumcontent_dir)/libwebrtc_common.a',
                   '<(libchromiumcontent_dir)/libyuv.a',
-                  #'<(libchromiumcontent_dir)/libcdm_renderer.a',
+                  '<(libchromiumcontent_dir)/librenderer.a',
                   '<(libchromiumcontent_dir)/libsecurity_state.a',
                 ],
               },
             }, {
               'link_settings': {
                 'libraries': [
-                  # Link with ffmpeg.
-                  #'<(libchromiumcontent_dir)/libffmpeg.so',
                   # Following libraries are required by libchromiumcontent:
+                  '-lexecinfo',
+                  '-lkvm',
+                  '-lidn',
+                  '-lunistring',
+                  '-licui18n',
+                  '-licuuc',
+                  '-licudata',
+                  '-lgconf-2',
+                  '-lgio-2.0',
+                  '-lxml2',
+                  '-lfontconfig',
+                  '-lfreetype',
+                  '-lharfbuzz',
+                  '-lpng16',
+                  '-lcups',
+                  '-lspeechd',
+                  '-lm',
+                  '-lz',
+                  '-lrt',
+                  '-lwebp',
+                  '-lwebpdemux',
+                  '-levent',
+                  '-ljpeg',
+                  '-lre2',
+                  '-lasound',
+                  '-lsnappy',
+                  '-lxslt',
+                  '-ldbus-1',
+                  '-lFLAC',
+                  '-lEGL',
+                  '-lGL',
+                  '-lGLU',
+                  '-lglapi',
+                  '-lGLESv2',
+                  '-lcrypt',
+                  '-lgnutls',
                   '-lexpat',
                 ],
               },
             }],
           ],
         }],  # (Normal builds)
-        
         ['OS=="linux" and libchromiumcontent_component==0', {
           # On Linux we have to use "--whole-archive" to force executable
           # to include all symbols, otherwise we will have plenty of
